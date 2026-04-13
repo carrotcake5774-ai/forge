@@ -1,0 +1,8 @@
+{
+  "name": "forge",
+  "version": "1.0.0",
+  "description": "12-STAGE plan-to-ship pipeline with multi-agent orchestration (Claude + Gemini CLI + Codex). Includes external review loops, auto-research evaluator, and dual code review.",
+  "author": {
+    "name": "Glen"
+  }
+}
