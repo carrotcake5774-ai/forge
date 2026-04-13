@@ -1,7 +1,9 @@
 # /execute-plan — 태스크 기반 자동 실행
 
-TaskList의 pending 태스크를 의존성 순서대로 실행합니다.
-각 태스크 완료 후 중간 검증을 수행하고, 전체 완료 시 `/verify`를 실행합니다.
+TaskList의 pending 태스크를 의존성 순서대로 실행한다.
+각 태스크 완료 후 중간 검증을 수행하고, 전체 완료 시 `/verify`를 실행한다.
+
+> **Layer 안내**: 이 명령은 `/pipeline` 의 STAGE 8 (구현) 에 해당한다. **STAGE 8 은 의도적으로 가벼운 lint 만 수행하고, 모든 무거운 verification (테스트 실행, 디버깅, 최종 검증) 은 §5 의 `/verify` 호출과 STAGE 9 (Auto-research 루프) 로 위임된다.** 병렬 wave 내부에 per-task pytest 나 검증 사이클을 추가하지 말 것 — 그 분리가 깨지면 wave 모델의 단순함이 사라진다. forge 의 verification discipline 은 `/verify`, `/ship`, STAGE 9 에서 일어난다.
 
 ## 인자
 

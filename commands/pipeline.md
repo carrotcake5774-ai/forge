@@ -447,6 +447,12 @@ STAGE 3과 동일. 단, 공통 브리핑에 아래 추가 포함:
 구현 완료된 코드를 **객관적 지표로 자동 개선**합니다.
 코드 리뷰(STAGE 10/11)에 진입하기 전에 기계적으로 최적화할 수 있는 부분을 먼저 처리합니다.
 
+> **Layer 안내**: STAGE 8 (`/execute-plan`) 은 *의도적으로* 가벼운 lint 만 하고, 모든 무거운 verification (테스트 실행 포함) 은 STAGE 9 와 최종 `/verify` 로 위임된다. 이 분리가 forge 의 핵심 구조이며, STAGE 8 에 테스트 사이클을 박으면 그 분리가 깨진다 — race condition 이 아니라 **layer 위반** 이 이유.
+>
+> STAGE 9-4 의 auto-research 루프는 이미 `RED check (Gold fail) → minimal change → fresh score → commit-or-rollback` 사이클을 가지고 있다. 이는 외부 TDD 프레임워크가 아니라 *forge 자체* 의 검증 패턴이며, "출제자 ≠ 응시자" (9-2 의 Gold test 격리) 원칙으로 vanilla TDD 보다 더 강한 anti-gaming 을 제공한다.
+>
+> forge 의 3 개 discipline 스킬 (`test-driven-development`, `verification-before-completion`, `systematic-debugging`) 의 *고유한* STAGE 9 기여는 9-2 의 RED 입증 한 가지뿐 — Gold test 를 작성한 후 현재 코드에서 *실제로 fail 하는지* 확인하고, 통과한다면 폐기 후 재작성. 그 외의 9-4 단계는 이미 자체적으로 동등한 discipline 을 적용하고 있다.
+
 ### 9-1. Evaluator 동적 설계 (Opus)
 
 프로젝트마다 평가 기준이 다르므로, Opus가 최종 플랜(STAGE 7 산출물)을 분석하여 evaluator를 설계합니다.
@@ -493,6 +499,16 @@ STAGE 3과 동일. 단, 공통 브리핑에 아래 추가 포함:
 
 Auto-research 루프가 점수만 올리고 실제 품질은 안 올리는 **Evaluator gaming**을 방지하기 위해,
 Evaluator specs와 **완전히 격리된 별도 Claude 세션**에서 Gold test를 설계합니다.
+
+> **RED 입증 절차** (gap-closing test 에 적용):
+>
+> 1. Gold test 작성
+> 2. **현재 코드 기반에서 그대로 실행** → 작성된 Gold test 가 *실제로 fail* 하는지 확인
+> 3. **gap-closing test** (구현 안 된 동작을 검증) → fail 안 하면 폐기 후 재작성. 이 카테고리의 Gold test 는 RED 가 *필수*
+> 4. **anchor test** (이미 잘 동작하는 걸 회귀 방지로 anchor) → 통과 OK. `tags: [anchor]` 같은 marker 로 명시. anchor 는 RED 강제 안 함
+> 5. 두 카테고리 모두 정상 확인 후에만 `evaluator/gold/` 에 commit
+>
+> 이 분리는 vanilla TDD 보다 *더 강한* 입증이다. vanilla TDD 는 같은 사람이 RED→GREEN 둘 다 보지만, 9-2 의 Gold test 는 *Auto-research 가 GREEN 을 낼 때까지 직접 보지 못하는* 검증 명령이다. 출제자/응시자 분리 + (gap-closing 의 경우) RED 입증의 결합.
 
 **원칙: 출제자 ≠ 응시자**
 - Gold test 세션은 Auto-research 루프와 컨텍스트를 공유하지 않음
@@ -542,7 +558,7 @@ iteration = 1
 while score < target_score AND iteration <= max_iterations:
     1. Gold test 전체 통과 확인 (실패 시 해당 항목 우선 수정)
     2. 최저 점수 카테고리 식별
-    3. 해당 카테고리의 실패/저점 항목 분석
+    3. 해당 카테고리의 실패/저점 항목 분석 (어느 spec, 어느 입력, 어느 layer 에서 깨지는지 evidence 부터)
     4. 코드 수정 (한 번에 하나의 개선에 집중)
     5. `/verify` 실행 (기존 테스트 깨뜨리지 않는지 확인)
     6. Gold test 재실행 (1건이라도 실패 → 즉시 rollback)
@@ -553,14 +569,16 @@ while score < target_score AND iteration <= max_iterations:
     9. iteration += 1
 ```
 
+> 위 루프는 forge 의 *기존* 검증 사이클이며 외부 TDD 스킬 없이도 RED check (step 6 의 Gold fail = 즉시 rollback), fresh evidence (step 7 의 새 점수 측정), commit/rollback 판정 (step 8) 을 모두 자체적으로 수행한다. 3 개 discipline 스킬은 step 3 의 분석이나 step 4 의 수정을 *원리적으로 안내* 할 수 있지만 9-4 의 실행 흐름을 바꾸지는 않는다.
+
 ### 루프 종료 조건
 
 | 조건 | 처리 |
 |------|------|
 | `score >= target_score` + Gold 전체 PASS | 성공 — STAGE 10으로 진행 |
 | `iteration > max_iterations` | 한계 도달 — 현재 최고 점수로 STAGE 10 진행, 미달 항목 목록을 코드 리뷰어에게 전달 |
-| 3회 연속 rollback | 자동 개선 한계 — 루프 종료, 사용자에게 수동 개입 요청 |
-| Gold test 실패 + 3회 수정 실패 | Gold 차단 — 사용자에게 수동 개입 요청 (실패 항목 + 파일:라인 제시) |
+| 3회 연속 rollback | 자동 개선 한계 — 같은 수정 패턴이 계속 새 곳에서 깨진다는 신호. 수정 자체가 아니라 *수정이 박히는 자리* 가 잘못됐을 가능성. 루프 종료, 사용자에게 수동 개입 요청 |
+| Gold test 실패 + 3회 수정 실패 | Gold 차단 — Gold 가 가리키는 동작이 현재 아키텍처에서 표현 불가능할 수 있음. 사용자에게 수동 개입 요청 (실패 항목 + 파일:라인 제시) |
 
 ### 수동 개입 요청 시 표준 출력
 
