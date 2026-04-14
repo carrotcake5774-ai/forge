@@ -1,7 +1,7 @@
 {
   "name": "forge",
-  "version": "1.0.1",
-  "description": "12-STAGE plan-to-ship pipeline with multi-agent orchestration (Claude + Gemini CLI + Codex). 1.0.1: /verify gains --full mode + pg_isready polling + pytest exit code branching; /ship Step 6 expanded CI failure evidence sources.",
+  "version": "1.1.0",
+  "description": "12-STAGE plan-to-ship pipeline with multi-agent orchestration (Claude + Codex CLI). 1.1.0: STAGE 2b/3/6 plan review switched from Gemini CLI to Codex CLI (codex exec -s read-only). STAGE 11 already Codex. External CLI unified to Codex. README + pipeline.md + STATE.md template updated. 1.0.1: /verify gains --full mode + pg_isready polling + pytest exit code branching; /ship Step 6 expanded CI failure evidence sources.",
   "author": {
     "name": "Glen"
   }

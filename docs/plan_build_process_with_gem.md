@@ -1,6 +1,21 @@
-# Plan Build Process (with Gemini)
+# Plan Build Process (with Gemini) — DEPRECATED (v1.0.x 기록)
 
-> Claude × Gemini 협업 플랜 빌드 프로세스
+> ⚠️ **DEPRECATED (v1.1.0부터)**
+>
+> 이 문서는 forge v1.0.x 시절 Gemini CLI 기반 플랜 빌드 프로세스를 기록한 것입니다.
+> v1.1.0부터 STAGE 2b/3/6 전부 **Codex CLI**로 전환되었습니다 (`codex exec -s read-only`).
+>
+> 현재 프로세스는 `commands/pipeline.md` STAGE 2b/3/6 섹션을 참조하세요.
+>
+> 아래 내용은 히스토리 보존 목적으로만 유지됩니다. 새 프로젝트에 적용하지 마세요.
+>
+> - Gemini `--approval-mode plan` → Codex `-s read-only` (OS-level Seatbelt 샌드박스로 강화)
+> - Gemini `-p "..." -o text` stdout 리다이렉트 → Codex `-o <file>` 최종 응답 직접 저장
+> - 전반적 철학 (Claude Builder + 외부 LLM Red Team/Creative)은 유지, 외부 LLM을 Gemini에서 Codex로 교체
+
+---
+
+> Claude × Gemini 협업 플랜 빌드 프로세스 (v1.0.x 원본, 히스토리용)
 > 각 AI의 강점을 활용한 반복적 정제 워크플로우
 
 ---
